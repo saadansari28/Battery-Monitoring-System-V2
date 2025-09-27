@@ -170,6 +170,33 @@
             border-radius: 5px;
             font-size: 0.9rem;
         }
+
+        /* --- NEW: Button Styles --- */
+        .report-button-container {
+            text-align: center;
+            /* Places the button after charts and before the status bar */
+            margin: 20px 0; 
+        }
+
+        .download-button {
+            display: inline-block;
+            background: linear-gradient(45deg, var(--accent), var(--secondary));
+            color: var(--light);
+            padding: 15px 35px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 1.1rem;
+            border: none;
+            cursor: pointer;
+            box-shadow: 0 5px 20px rgba(0, 205, 172, 0.25);
+            transition: all 0.3s ease;
+        }
+
+        .download-button:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 25px rgba(37, 117, 252, 0.3);
+        }
         
         /* Responsive adjustments */
         @media (max-width: 768px) {
@@ -298,6 +325,11 @@
                 </div>
             </div>
         </div>
+
+        <!-- NEW: Download Button Section -->
+        <div class="report-button-container">
+            <a href="/download_report" class="download-button">Download PDF Report</a>
+        </div>
         
         <div class="status-bar">
             <span class="status-indicator" id="status-indicator"></span>
@@ -377,17 +409,16 @@
         const socChart = createChart(document.getElementById('socChart'), 'State of Charge (%)', '#fdcb6e');
         const sohChart = createChart(document.getElementById('sohChart'), 'State of Health (%)', '#00b894');
 
-        let time = 0;
         let updateCount = 0;
 
         // Function to update a chart with new data
-        function updateChart(chart, value, maxPoints = 20) {
+        function updateChart(chart, value, label, maxPoints = 20) {
             if (chart.data.labels.length > maxPoints) {
                 chart.data.labels.shift();
                 chart.data.datasets[0].data.shift();
             }
             
-            chart.data.labels.push(time);
+            chart.data.labels.push(label);
             chart.data.datasets[0].data.push(value || 0);
             chart.update();
         }
@@ -416,9 +447,10 @@
                 status.style.color = '#e17055';
             }
             
+            const timestamp = new Date().toLocaleTimeString();
             // Update timestamp
             document.getElementById('last-update').textContent = 
-                `Last update: ${data.timestamp} (Update #${++updateCount})`;
+                `Last update: ${timestamp} (Update #${++updateCount})`;
             
             // Show raw data
             document.getElementById('raw-data').innerHTML = 
@@ -426,13 +458,12 @@
                 `SOC:${data.soc}% | P:${data.power}mW | Cycles:${data.cycles}`;
             
             // Update all charts
-            time++;
-            updateChart(voltageChart, data.voltage);
-            updateChart(currentChart, data.current);
-            updateChart(powerChart, data.power);
-            updateChart(temperatureChart, data.temperature);
-            updateChart(socChart, data.soc);
-            updateChart(sohChart, data.soh);
+            updateChart(voltageChart, data.voltage, timestamp);
+            updateChart(currentChart, data.current, timestamp);
+            updateChart(powerChart, data.power, timestamp);
+            updateChart(temperatureChart, data.temperature, timestamp);
+            updateChart(socChart, data.soc, timestamp);
+            updateChart(sohChart, data.soh, timestamp);
         }
 
         async function fetchData() {
@@ -442,6 +473,11 @@
                 if (!response.ok) throw new Error('HTTP error: ' + response.status);
                 
                 const data = await response.json();
+                
+                if (data.error) {
+                    throw new Error(data.error);
+                }
+
                 updateDisplay(data);
                 
             } catch (error) {
