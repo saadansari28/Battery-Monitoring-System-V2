@@ -313,19 +313,85 @@ def download_report():
         pdf.cell(0, 10, 'Summary Overview', 0, 1, 'L')
         pdf.ln(2)
         
-        # Draw summary cards in a grid
+        # Determine health status and color based on SoH
+        soh_value = summary['soh']
+        if soh_value >= 80:
+            health_status = "EXCELLENT"
+            health_color = (46, 204, 113)  # Green
+            health_bg = (232, 248, 237)    # Light green background
+        elif soh_value >= 60:
+            health_status = "GOOD"
+            health_color = (52, 152, 219)  # Blue
+            health_bg = (232, 243, 252)    # Light blue background
+        elif soh_value >= 40:
+            health_status = "AVERAGE"
+            health_color = (241, 196, 15)  # Yellow/Orange
+            health_bg = (254, 249, 231)    # Light yellow background
+        else:
+            health_status = "POOR"
+            health_color = (231, 76, 60)   # Red
+            health_bg = (254, 235, 235)    # Light red background
+        
+        # Draw prominent health status card at the top
+        health_card_width = 190
+        health_card_height = 28
+        health_x = 10
+        health_y = pdf.get_y()
+        
+        # Health card background with health color
+        pdf.set_fill_color(*health_bg)
+        pdf.rect(health_x, health_y, health_card_width, health_card_height, 'F')
+        
+        # Health card thick colored left border
+        pdf.set_fill_color(*health_color)
+        pdf.rect(health_x, health_y, 5, health_card_height, 'F')
+        
+        # Health status label
+        pdf.set_xy(health_x + 10, health_y + 5)
+        pdf.set_font('Arial', 'B', 12)
+        pdf.set_text_color(80, 80, 80)
+        pdf.cell(60, 6, 'BATTERY HEALTH STATUS', 0, 0, 'L')
+        
+        # Health status value
+        pdf.set_font('Arial', 'B', 16)
+        pdf.set_text_color(*health_color)
+        pdf.cell(60, 6, health_status, 0, 0, 'C')
+        
+        # SoH percentage
+        pdf.set_font('Arial', 'B', 20)
+        pdf.cell(60, 6, f"{soh_value:.1f}%", 0, 1, 'R')
+        
+        # Health description
+        pdf.set_xy(health_x + 10, health_y + 14)
+        pdf.set_font('Arial', '', 9)
+        pdf.set_text_color(100, 100, 100)
+        
+        if soh_value >= 80:
+            health_desc = "Battery is in excellent condition. Performance is optimal."
+        elif soh_value >= 60:
+            health_desc = "Battery is performing well with minor degradation."
+        elif soh_value >= 40:
+            health_desc = "Battery shows moderate wear. Monitor performance closely."
+        else:
+            health_desc = "Battery health is poor. Consider replacement soon."
+        
+        pdf.multi_cell(health_card_width - 20, 4, health_desc)
+        
+        pdf.set_y(health_y + health_card_height + 8)
+        
+        # Draw summary cards in a grid (other metrics)
         card_width = 60
         card_height = 22
         x_start = 10
         y_start = pdf.get_y()
         
         cards_data = [
-            ("Overall Health (SoH)", f"{summary['soh']:.1f}%", (0, 184, 148)),
             ("Total Cycles", f"{summary['total_cycles']}", (52, 152, 219)),
             ("Avg Voltage", f"{summary['avg_voltage']:.2f} V", (155, 89, 182)),
             ("Peak Current", f"{summary['peak_current']:.1f} mA", (231, 76, 60)),
             ("Avg Temperature", f"{summary['avg_temperature']:.1f} °C", (230, 126, 34)),
-            ("Latest SoC", f"{summary['latest_soc']:.1f}%", (46, 204, 113))
+            ("Latest SoC", f"{summary['latest_soc']:.1f}%", (46, 204, 113)),
+            ("Total Readings", f"{summary['total_readings']}", (52, 73, 94))
         ]
         
         for idx, (label, value, color) in enumerate(cards_data):
