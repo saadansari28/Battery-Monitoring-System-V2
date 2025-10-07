@@ -332,13 +332,13 @@ def download_report():
         
         # Reset text color
         pdf.set_text_color(0, 0, 0)
-        pdf.set_y(50)
+        pdf.set_y(48)
         
         # ===== 3. INDIVIDUAL PARAMETERS (All metrics in cards) =====
-        pdf.set_font('Arial', 'B', 16)
+        pdf.set_font('Arial', 'B', 14)
         pdf.set_text_color(106, 17, 203)  # Purple
-        pdf.cell(0, 10, 'Current Parameters', 0, 1, 'L')
-        pdf.ln(2)
+        pdf.cell(0, 8, 'Current Parameters', 0, 1, 'L')
+        pdf.ln(1)
         
         # Parameter cards in grid
         card_width = 60
@@ -380,17 +380,17 @@ def download_report():
             pdf.set_text_color(*color)
             pdf.cell(card_width - 6, 8, value, 0, 1, 'C')
         
-        pdf.set_y(y_start + (2 * (card_height + 5)) + 10)
+        pdf.set_y(y_start + (2 * (card_height + 5)) + 5)
         
         # ===== 4. SUMMARY OVERVIEW (Battery Health Status with Color Code) =====
-        pdf.set_font('Arial', 'B', 16)
+        pdf.set_font('Arial', 'B', 14)
         pdf.set_text_color(106, 17, 203)
-        pdf.cell(0, 10, 'Summary Overview', 0, 1, 'L')
-        pdf.ln(2)
+        pdf.cell(0, 8, 'Summary Overview', 0, 1, 'L')
+        pdf.ln(1)
         
         # Draw prominent health status card
         health_card_width = 190
-        health_card_height = 28
+        health_card_height = 25
         health_x = 10
         health_y = pdf.get_y()
         
@@ -433,13 +433,13 @@ def download_report():
         
         pdf.multi_cell(health_card_width - 20, 4, health_desc)
         
-        pdf.set_y(health_y + health_card_height + 10)
+        pdf.set_y(health_y + health_card_height + 5)
         
         # ===== 5. SUGGESTIONS (Paragraph based on health) =====
-        pdf.set_font('Arial', 'B', 14)
+        pdf.set_font('Arial', 'B', 13)
         pdf.set_text_color(106, 17, 203)
-        pdf.cell(0, 8, 'Recommendations & Suggestions', 0, 1, 'L')
-        pdf.ln(2)
+        pdf.cell(0, 7, 'Recommendations & Suggestions', 0, 1, 'L')
+        pdf.ln(1)
         
         pdf.set_font('Arial', '', 10)
         pdf.set_text_color(0, 0, 0)
@@ -479,15 +479,15 @@ def download_report():
         
         # Print suggestions
         for suggestion in suggestions:
-            pdf.multi_cell(0, 6, suggestion)
+            pdf.multi_cell(0, 5, suggestion)
         
-        pdf.ln(5)
+        pdf.ln(3)
         
         # ===== 6. GRAPHICAL ANALYSIS (Charts) =====
-        pdf.set_font('Arial', 'B', 16)
+        pdf.set_font('Arial', 'B', 14)
         pdf.set_text_color(106, 17, 203)
-        pdf.cell(0, 10, 'Graphical Analysis', 0, 1, 'L')
-        pdf.ln(2)
+        pdf.cell(0, 8, 'Graphical Analysis', 0, 1, 'L')
+        pdf.ln(1)
         
         # Add the 4-panel chart
         temp_chart = 'temp_chart.png'
@@ -497,15 +497,13 @@ def download_report():
         pdf.image(temp_chart, x=10, w=190)
         os.remove(temp_chart)
         
-        pdf.ln(5)
-        
         # ===== 7. DETAILED DATA TABLE =====
         pdf.add_page()
         
-        pdf.set_font('Arial', 'B', 16)
+        pdf.set_font('Arial', 'B', 14)
         pdf.set_text_color(106, 17, 203)
-        pdf.cell(0, 10, 'Detailed Data Table', 0, 1, 'L')
-        pdf.ln(2)
+        pdf.cell(0, 8, 'Detailed Data Table', 0, 1, 'L')
+        pdf.ln(1)
         
         # Table header
         pdf.set_font('Arial', 'B', 8)
@@ -542,7 +540,7 @@ def download_report():
             pdf.cell(col_widths[6], 6, f"{row['soh']:.1f}", 1, 1, 'C', True)
         
         # Footer note
-        pdf.ln(5)
+        pdf.ln(3)
         pdf.set_font('Arial', 'I', 8)
         pdf.set_text_color(100, 100, 100)
         pdf.multi_cell(0, 4, 
