@@ -7,7 +7,7 @@ from flask import Flask, jsonify, Response, render_template, render_template_str
 from datetime import datetime
 import pandas as pd
 import matplotlib
-matplotlib.use('Agg')
+matplotlib.use('Agg')  # Use non-interactive backend for faster rendering
 import matplotlib.pyplot as plt
 import io
 from fpdf import FPDF
@@ -209,94 +209,234 @@ def get_data():
 
 @app.route('/download_report')
 def download_report():
-    """Generates PDF report"""
+    """Generates a comprehensive PDF report with charts and data tables"""
     if not os.path.exists(CSV_FILE):
-        return """
-        <html><body>
-        <h1>Error</h1>
-        <p>No data file found. Let the system run for a while.</p>
-        <a href='/'>Go Back</a>
-        </body></html>
-        """, 404
+        return """<html><body style="font-family: Arial; padding: 50px; background: #1a1a2e; color: #fff;">
+        <h1>❌ Error: No Data Available</h1>
+        <p>No readings have been recorded yet. Please let the system run for at least 30 seconds.</p>
+        <a href='/' style="color: #00cdac;">← Back to Dashboard</a>
+        </body></html>""", 404
 
-    df = pd.read_csv(CSV_FILE)
-    if df.empty:
-        return """
-        <html><body>
-        <h1>Error</h1>
-        <p>Data file is empty. No report to generate.</p>
-        <a href='/'>Go Back</a>
-        </body></html>
-        """, 404
+    try:
+        df = pd.read_csv(CSV_FILE)
+        if df.empty or len(df) < 2:
+            return """<html><body style="font-family: Arial; padding: 50px; background: #1a1a2e; color: #fff;">
+            <h1>❌ Error: Insufficient Data</h1>
+            <p>Not enough data points to generate a report. Please wait for more readings.</p>
+            <a href='/' style="color: #00cdac;">← Back to Dashboard</a>
+            </body></html>""", 404
 
-    df['timestamp'] = pd.to_datetime(df['timestamp'])
+        df['timestamp'] = pd.to_datetime(df['timestamp'])
+        
+        # Calculate summary statistics
+        summary = {
+            "soh": df['soh'].iloc[-1] if 'soh' in df.columns else 0,
+            "total_cycles": int(df['cycles'].iloc[-1]) if 'cycles' in df.columns else 0,
+            "avg_voltage": df['voltage'].mean(),
+            "peak_current": df['current'].max(),
+            "avg_temperature": df['temperature'].mean(),
+            "latest_soc": df['soc'].iloc[-1] if 'soc' in df.columns else 0,
+            "min_voltage": df['voltage'].min(),
+            "max_voltage": df['voltage'].max(),
+            "avg_power": df['power'].mean(),
+            "total_readings": len(df)
+        }
 
-    # Generate summary
-    summary = {
-        "avg_voltage": df['voltage'].mean(),
-        "avg_current": df['current'].mean(),
-        "avg_power": df['power'].mean(),
-        "max_voltage": df['voltage'].max(),
-        "latest_soc": df['soc'].iloc[-1],
-        "estimated_soh": df['soh'].iloc[-1],
-    }
+        # Create high-quality charts with optimized settings
+        plt.style.use('default')
+        fig, axes = plt.subplots(2, 2, figsize=(12, 8), dpi=100)
+        fig.patch.set_facecolor('white')
+        
+        # Chart 1: Voltage Over Time
+        axes[0, 0].plot(df['timestamp'], df['voltage'], color='#6a11cb', linewidth=2)
+        axes[0, 0].set_title('Voltage Over Time', fontsize=11, fontweight='bold')
+        axes[0, 0].set_ylabel('Voltage (V)', fontsize=9)
+        axes[0, 0].grid(True, alpha=0.3)
+        axes[0, 0].tick_params(axis='x', rotation=45, labelsize=8)
+        axes[0, 0].tick_params(axis='y', labelsize=8)
+        
+        # Chart 2: Current Over Time
+        axes[0, 1].plot(df['timestamp'], df['current'], color='#2575fc', linewidth=2)
+        axes[0, 1].set_title('Current Over Time', fontsize=11, fontweight='bold')
+        axes[0, 1].set_ylabel('Current (mA)', fontsize=9)
+        axes[0, 1].grid(True, alpha=0.3)
+        axes[0, 1].tick_params(axis='x', rotation=45, labelsize=8)
+        axes[0, 1].tick_params(axis='y', labelsize=8)
+        
+        # Chart 3: State of Charge Over Time
+        axes[1, 0].plot(df['timestamp'], df['soc'], color='#fdcb6e', linewidth=2)
+        axes[1, 0].set_title('State of Charge (SoC) Over Time', fontsize=11, fontweight='bold')
+        axes[1, 0].set_ylabel('SoC (%)', fontsize=9)
+        axes[1, 0].grid(True, alpha=0.3)
+        axes[1, 0].tick_params(axis='x', rotation=45, labelsize=8)
+        axes[1, 0].tick_params(axis='y', labelsize=8)
+        
+        # Chart 4: Temperature Over Time
+        axes[1, 1].plot(df['timestamp'], df['temperature'], color='#e17055', linewidth=2)
+        axes[1, 1].set_title('Temperature Over Time', fontsize=11, fontweight='bold')
+        axes[1, 1].set_ylabel('Temperature (°C)', fontsize=9)
+        axes[1, 1].grid(True, alpha=0.3)
+        axes[1, 1].tick_params(axis='x', rotation=45, labelsize=8)
+        axes[1, 1].tick_params(axis='y', labelsize=8)
+        
+        plt.tight_layout()
+        
+        # Save chart to buffer
+        chart_buffer = io.BytesIO()
+        plt.savefig(chart_buffer, format='PNG', bbox_inches='tight', dpi=150)
+        chart_buffer.seek(0)
+        plt.close(fig)
 
-    # Create chart
-    fig, ax1 = plt.subplots(figsize=(10, 5))
-    ax2 = ax1.twinx()
-    ax1.plot(df['timestamp'], df['voltage'], color='#6a11cb', label='Voltage (V)')
-    ax2.plot(df['timestamp'], df['current'], color='#2575fc', label='Current (mA)')
-    ax1.set_xlabel('Time')
-    ax1.set_ylabel('Voltage (V)', color='#6a11cb')
-    ax2.set_ylabel('Current (mA)', color='#2575fc')
-    plt.title('Battery Voltage & Current Report')
-    fig.legend(loc="upper right")
-    fig.tight_layout()
-    
-    img_buffer = io.BytesIO()
-    plt.savefig(img_buffer, format='PNG')
-    img_buffer.seek(0)
-    plt.close(fig)
-
-    # Create PDF
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font('Arial', 'B', 20)
-    pdf.cell(0, 10, 'Battery Performance Report', 0, 1, 'C')
-    pdf.set_font('Arial', '', 11)
-    pdf.cell(0, 10, f"Generated: {datetime.now().strftime('%Y-%m-%d %H:%M')}", 0, 1, 'C')
-    pdf.ln(5)
-
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, 'Performance Summary', 0, 1)
-    pdf.set_font('Arial', '', 12)
-    pdf.multi_cell(0, 8,
-        f"  - Latest State of Charge (SoC): {summary['latest_soc']:.2f}%\n"
-        f"  - Estimated State of Health (SoH): {summary['estimated_soh']:.2f}%\n"
-        f"  - Average Voltage: {summary['avg_voltage']:.2f} V\n"
-        f"  - Average Current: {summary['avg_current']:.2f} mA\n"
-        f"  - Average Power: {summary['avg_power']:.2f} mW"
-    )
-
-    # Save temp image
-    temp_img = 'temp_chart.png'
-    with open(temp_img, 'wb') as f:
-        f.write(img_buffer.getvalue())
-    
-    pdf.ln(10)
-    pdf.set_font('Arial', 'B', 14)
-    pdf.cell(0, 10, 'Readings Chart', 0, 1)
-    pdf.image(temp_img, x=10, w=190)
-    
-    # Clean up
-    if os.path.exists(temp_img):
-        os.remove(temp_img)
-
-    return Response(
-        pdf.output(dest='S').encode('latin-1'),
-        mimetype='application/pdf',
-        headers={'Content-Disposition': 'attachment;filename=battery_report.pdf'}
-    )
+        # Create PDF with optimized settings
+        pdf = FPDF('P', 'mm', 'A4')
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
+        
+        # Header with gradient effect (using colors)
+        pdf.set_fill_color(26, 30, 46)  # Dark blue
+        pdf.rect(0, 0, 210, 40, 'F')
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font('Arial', 'B', 24)
+        pdf.set_y(15)
+        pdf.cell(0, 10, 'Battery Performance Report', 0, 1, 'C')
+        pdf.set_font('Arial', '', 10)
+        pdf.set_text_color(200, 200, 200)
+        pdf.cell(0, 8, f"Generated: {datetime.now().strftime('%d %B %Y at %H:%M:%S')}", 0, 1, 'C')
+        
+        # Reset text color
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_y(45)
+        
+        # Summary Cards Section
+        pdf.set_font('Arial', 'B', 16)
+        pdf.set_text_color(106, 17, 203)  # Purple
+        pdf.cell(0, 10, 'Summary Overview', 0, 1, 'L')
+        pdf.ln(2)
+        
+        # Draw summary cards in a grid
+        card_width = 60
+        card_height = 22
+        x_start = 10
+        y_start = pdf.get_y()
+        
+        cards_data = [
+            ("Overall Health (SoH)", f"{summary['soh']:.1f}%", (0, 184, 148)),
+            ("Total Cycles", f"{summary['total_cycles']}", (52, 152, 219)),
+            ("Avg Voltage", f"{summary['avg_voltage']:.2f} V", (155, 89, 182)),
+            ("Peak Current", f"{summary['peak_current']:.1f} mA", (231, 76, 60)),
+            ("Avg Temperature", f"{summary['avg_temperature']:.1f} °C", (230, 126, 34)),
+            ("Latest SoC", f"{summary['latest_soc']:.1f}%", (46, 204, 113))
+        ]
+        
+        for idx, (label, value, color) in enumerate(cards_data):
+            row = idx // 3
+            col = idx % 3
+            x = x_start + (col * (card_width + 5))
+            y = y_start + (row * (card_height + 5))
+            
+            # Draw card background
+            pdf.set_fill_color(245, 247, 250)
+            pdf.rect(x, y, card_width, card_height, 'F')
+            
+            # Draw colored top border
+            pdf.set_fill_color(*color)
+            pdf.rect(x, y, card_width, 3, 'F')
+            
+            # Card content
+            pdf.set_xy(x + 3, y + 6)
+            pdf.set_font('Arial', '', 8)
+            pdf.set_text_color(100, 100, 100)
+            pdf.cell(card_width - 6, 4, label, 0, 1, 'C')
+            
+            pdf.set_x(x + 3)
+            pdf.set_font('Arial', 'B', 14)
+            pdf.set_text_color(*color)
+            pdf.cell(card_width - 6, 8, value, 0, 1, 'C')
+        
+        pdf.set_y(y_start + (2 * (card_height + 5)) + 5)
+        
+        # Graphical Analysis Section
+        pdf.set_font('Arial', 'B', 16)
+        pdf.set_text_color(106, 17, 203)
+        pdf.cell(0, 10, 'Graphical Analysis', 0, 1, 'L')
+        pdf.ln(2)
+        
+        # Add the 4-panel chart
+        temp_chart = 'temp_chart.png'
+        with open(temp_chart, 'wb') as f:
+            f.write(chart_buffer.getvalue())
+        
+        pdf.image(temp_chart, x=10, w=190)
+        os.remove(temp_chart)
+        
+        # Add new page for data table
+        pdf.add_page()
+        
+        # Data Table Section
+        pdf.set_font('Arial', 'B', 16)
+        pdf.set_text_color(106, 17, 203)
+        pdf.cell(0, 10, 'Detailed Data Table', 0, 1, 'L')
+        pdf.ln(2)
+        
+        # Table header
+        pdf.set_font('Arial', 'B', 8)
+        pdf.set_fill_color(106, 17, 203)
+        pdf.set_text_color(255, 255, 255)
+        
+        col_widths = [38, 22, 22, 22, 28, 20, 20]
+        headers = ['Timestamp', 'Voltage (V)', 'Current (mA)', 'Power (mW)', 'Temp (°C)', 'SoC (%)', 'SoH (%)']
+        
+        for i, header in enumerate(headers):
+            pdf.cell(col_widths[i], 8, header, 1, 0, 'C', True)
+        pdf.ln()
+        
+        # Table rows (show last 30 entries for readability)
+        pdf.set_font('Arial', '', 7)
+        pdf.set_text_color(0, 0, 0)
+        
+        display_df = df.tail(30)  # Show last 30 readings
+        
+        for idx, row in display_df.iterrows():
+            # Alternate row colors
+            if idx % 2 == 0:
+                pdf.set_fill_color(245, 247, 250)
+            else:
+                pdf.set_fill_color(255, 255, 255)
+            
+            timestamp = row['timestamp'].strftime('%d-%b %H:%M:%S')
+            pdf.cell(col_widths[0], 6, timestamp, 1, 0, 'L', True)
+            pdf.cell(col_widths[1], 6, f"{row['voltage']:.2f}", 1, 0, 'C', True)
+            pdf.cell(col_widths[2], 6, f"{row['current']:.2f}", 1, 0, 'C', True)
+            pdf.cell(col_widths[3], 6, f"{row['power']:.2f}", 1, 0, 'C', True)
+            pdf.cell(col_widths[4], 6, f"{row['temperature']:.2f}", 1, 0, 'C', True)
+            pdf.cell(col_widths[5], 6, f"{row['soc']:.1f}", 1, 0, 'C', True)
+            pdf.cell(col_widths[6], 6, f"{row['soh']:.1f}", 1, 1, 'C', True)
+        
+        # Footer note
+        pdf.ln(5)
+        pdf.set_font('Arial', 'I', 8)
+        pdf.set_text_color(100, 100, 100)
+        pdf.multi_cell(0, 4, 
+            f"Note: This report shows the last 30 readings out of {summary['total_readings']} total recorded measurements. "
+            f"Data collection period: {df['timestamp'].min().strftime('%d %b %Y %H:%M')} to {df['timestamp'].max().strftime('%d %b %Y %H:%M')}"
+        )
+        
+        # Generate PDF output
+        pdf_output = pdf.output(dest='S')
+        
+        return Response(
+            pdf_output.encode('latin-1') if isinstance(pdf_output, str) else pdf_output,
+            mimetype='application/pdf',
+            headers={'Content-Disposition': 'attachment;filename=battery_report.pdf'}
+        )
+        
+    except Exception as e:
+        print(f"Error generating PDF: {e}")
+        return f"""<html><body style="font-family: Arial; padding: 50px; background: #1a1a2e; color: #fff;">
+        <h1>❌ Error Generating Report</h1>
+        <p>An error occurred while creating the PDF: {str(e)}</p>
+        <a href='/' style="color: #00cdac;">← Back to Dashboard</a>
+        </body></html>""", 500
 
 if __name__ == '__main__':
     print("\n" + "="*60)
