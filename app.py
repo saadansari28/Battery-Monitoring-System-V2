@@ -234,12 +234,18 @@ def download_report():
             "total_cycles": int(df['cycles'].iloc[-1]) if 'cycles' in df.columns else 0,
             "avg_voltage": df['voltage'].mean(),
             "peak_current": df['current'].max(),
+            "avg_current": df['current'].mean(),
             "avg_temperature": df['temperature'].mean(),
             "latest_soc": df['soc'].iloc[-1] if 'soc' in df.columns else 0,
             "min_voltage": df['voltage'].min(),
             "max_voltage": df['voltage'].max(),
             "avg_power": df['power'].mean(),
-            "total_readings": len(df)
+            "max_power": df['power'].max(),
+            "total_readings": len(df),
+            "latest_voltage": df['voltage'].iloc[-1],
+            "latest_current": df['current'].iloc[-1],
+            "latest_power": df['power'].iloc[-1],
+            "latest_temperature": df['temperature'].iloc[-1]
         }
 
         # Create high-quality charts with optimized settings
@@ -287,32 +293,6 @@ def download_report():
         chart_buffer.seek(0)
         plt.close(fig)
 
-        # Create PDF with optimized settings
-        pdf = FPDF('P', 'mm', 'A4')
-        pdf.set_auto_page_break(auto=True, margin=15)
-        pdf.add_page()
-        
-        # Header with gradient effect (using colors)
-        pdf.set_fill_color(26, 30, 46)  # Dark blue
-        pdf.rect(0, 0, 210, 40, 'F')
-        pdf.set_text_color(255, 255, 255)
-        pdf.set_font('Arial', 'B', 24)
-        pdf.set_y(15)
-        pdf.cell(0, 10, 'Battery Performance Report', 0, 1, 'C')
-        pdf.set_font('Arial', '', 10)
-        pdf.set_text_color(200, 200, 200)
-        pdf.cell(0, 8, f"Generated: {datetime.now().strftime('%d %B %Y at %H:%M:%S')}", 0, 1, 'C')
-        
-        # Reset text color
-        pdf.set_text_color(0, 0, 0)
-        pdf.set_y(45)
-        
-        # Summary Cards Section
-        pdf.set_font('Arial', 'B', 16)
-        pdf.set_text_color(106, 17, 203)  # Purple
-        pdf.cell(0, 10, 'Summary Overview', 0, 1, 'L')
-        pdf.ln(2)
-        
         # Determine health status and color based on SoH
         soh_value = summary['soh']
         if soh_value >= 80:
@@ -331,8 +311,84 @@ def download_report():
             health_status = "POOR"
             health_color = (231, 76, 60)   # Red
             health_bg = (254, 235, 235)    # Light red background
+
+        # Create PDF with optimized settings
+        pdf = FPDF('P', 'mm', 'A4')
+        pdf.set_auto_page_break(auto=True, margin=15)
+        pdf.add_page()
         
-        # Draw prominent health status card at the top
+        # ===== 1. HEADER: Battery Performance Report =====
+        pdf.set_fill_color(26, 30, 46)  # Dark blue
+        pdf.rect(0, 0, 210, 40, 'F')
+        pdf.set_text_color(255, 255, 255)
+        pdf.set_font('Arial', 'B', 24)
+        pdf.set_y(15)
+        pdf.cell(0, 10, 'Battery Performance Report', 0, 1, 'C')
+        
+        # ===== 2. DATE & TIME (Generated on) =====
+        pdf.set_font('Arial', '', 10)
+        pdf.set_text_color(200, 200, 200)
+        pdf.cell(0, 8, f"Generated on: {datetime.now().strftime('%d %B %Y at %H:%M:%S')}", 0, 1, 'C')
+        
+        # Reset text color
+        pdf.set_text_color(0, 0, 0)
+        pdf.set_y(50)
+        
+        # ===== 3. INDIVIDUAL PARAMETERS (All metrics in cards) =====
+        pdf.set_font('Arial', 'B', 16)
+        pdf.set_text_color(106, 17, 203)  # Purple
+        pdf.cell(0, 10, 'Current Parameters', 0, 1, 'L')
+        pdf.ln(2)
+        
+        # Parameter cards in grid
+        card_width = 60
+        card_height = 22
+        x_start = 10
+        y_start = pdf.get_y()
+        
+        params_data = [
+            ("Voltage", f"{summary['latest_voltage']:.2f} V", (155, 89, 182)),
+            ("Current", f"{summary['latest_current']:.2f} mA", (52, 152, 219)),
+            ("Power", f"{summary['latest_power']:.2f} mW", (46, 204, 113)),
+            ("Temperature", f"{summary['latest_temperature']:.1f} °C", (230, 126, 34)),
+            ("State of Charge", f"{summary['latest_soc']:.1f}%", (52, 73, 94)),
+            ("Charge Cycles", f"{summary['total_cycles']}", (231, 76, 60))
+        ]
+        
+        for idx, (label, value, color) in enumerate(params_data):
+            row = idx // 3
+            col = idx % 3
+            x = x_start + (col * (card_width + 5))
+            y = y_start + (row * (card_height + 5))
+            
+            # Draw card background
+            pdf.set_fill_color(245, 247, 250)
+            pdf.rect(x, y, card_width, card_height, 'F')
+            
+            # Draw colored top border
+            pdf.set_fill_color(*color)
+            pdf.rect(x, y, card_width, 3, 'F')
+            
+            # Card content
+            pdf.set_xy(x + 3, y + 6)
+            pdf.set_font('Arial', '', 8)
+            pdf.set_text_color(100, 100, 100)
+            pdf.cell(card_width - 6, 4, label, 0, 1, 'C')
+            
+            pdf.set_x(x + 3)
+            pdf.set_font('Arial', 'B', 14)
+            pdf.set_text_color(*color)
+            pdf.cell(card_width - 6, 8, value, 0, 1, 'C')
+        
+        pdf.set_y(y_start + (2 * (card_height + 5)) + 10)
+        
+        # ===== 4. SUMMARY OVERVIEW (Battery Health Status with Color Code) =====
+        pdf.set_font('Arial', 'B', 16)
+        pdf.set_text_color(106, 17, 203)
+        pdf.cell(0, 10, 'Summary Overview', 0, 1, 'L')
+        pdf.ln(2)
+        
+        # Draw prominent health status card
         health_card_width = 190
         health_card_height = 28
         health_x = 10
@@ -377,51 +433,57 @@ def download_report():
         
         pdf.multi_cell(health_card_width - 20, 4, health_desc)
         
-        pdf.set_y(health_y + health_card_height + 8)
+        pdf.set_y(health_y + health_card_height + 10)
         
-        # Draw summary cards in a grid (other metrics)
-        card_width = 60
-        card_height = 22
-        x_start = 10
-        y_start = pdf.get_y()
+        # ===== 5. SUGGESTIONS (Paragraph based on health) =====
+        pdf.set_font('Arial', 'B', 14)
+        pdf.set_text_color(106, 17, 203)
+        pdf.cell(0, 8, 'Recommendations & Suggestions', 0, 1, 'L')
+        pdf.ln(2)
         
-        cards_data = [
-            ("Total Cycles", f"{summary['total_cycles']}", (52, 152, 219)),
-            ("Avg Voltage", f"{summary['avg_voltage']:.2f} V", (155, 89, 182)),
-            ("Peak Current", f"{summary['peak_current']:.1f} mA", (231, 76, 60)),
-            ("Avg Temperature", f"{summary['avg_temperature']:.1f} °C", (230, 126, 34)),
-            ("Latest SoC", f"{summary['latest_soc']:.1f}%", (46, 204, 113)),
-            ("Total Readings", f"{summary['total_readings']}", (52, 73, 94))
-        ]
+        pdf.set_font('Arial', '', 10)
+        pdf.set_text_color(0, 0, 0)
         
-        for idx, (label, value, color) in enumerate(cards_data):
-            row = idx // 3
-            col = idx % 3
-            x = x_start + (col * (card_width + 5))
-            y = y_start + (row * (card_height + 5))
-            
-            # Draw card background
-            pdf.set_fill_color(245, 247, 250)
-            pdf.rect(x, y, card_width, card_height, 'F')
-            
-            # Draw colored top border
-            pdf.set_fill_color(*color)
-            pdf.rect(x, y, card_width, 3, 'F')
-            
-            # Card content
-            pdf.set_xy(x + 3, y + 6)
-            pdf.set_font('Arial', '', 8)
-            pdf.set_text_color(100, 100, 100)
-            pdf.cell(card_width - 6, 4, label, 0, 1, 'C')
-            
-            pdf.set_x(x + 3)
-            pdf.set_font('Arial', 'B', 14)
-            pdf.set_text_color(*color)
-            pdf.cell(card_width - 6, 8, value, 0, 1, 'C')
+        # Generate suggestions based on health and parameters
+        suggestions = []
         
-        pdf.set_y(y_start + (2 * (card_height + 5)) + 5)
+        if soh_value >= 80:
+            suggestions.append("- Your battery is performing excellently. Continue normal usage patterns.")
+            suggestions.append("- Maintain regular charging cycles to preserve battery longevity.")
+        elif soh_value >= 60:
+            suggestions.append("- Battery health is good but showing signs of normal wear.")
+            suggestions.append("- Avoid deep discharges (below 20%) to extend battery life.")
+            suggestions.append("- Consider calibrating the battery monthly by doing a full charge-discharge cycle.")
+        elif soh_value >= 40:
+            suggestions.append("- Battery is showing moderate degradation. Performance may be noticeably reduced.")
+            suggestions.append("- Limit high-current applications to prevent further stress.")
+            suggestions.append("- Plan for battery replacement within the next 6-12 months.")
+        else:
+            suggestions.append("- CRITICAL: Battery health is very poor. Immediate replacement recommended.")
+            suggestions.append("- Continued use may result in unreliable performance or safety risks.")
+            suggestions.append("- Do not use for critical applications until battery is replaced.")
         
-        # Graphical Analysis Section
+        # Temperature-based suggestions
+        if summary['avg_temperature'] > 45:
+            suggestions.append("- WARNING: Average temperature is high. Ensure proper ventilation and cooling.")
+        elif summary['avg_temperature'] < 10:
+            suggestions.append("- NOTE: Low temperature detected. Battery performance may be reduced in cold conditions.")
+        
+        # Current-based suggestions
+        if summary['peak_current'] > 1000:
+            suggestions.append("- High current draw detected. Consider reducing load to extend battery life.")
+        
+        # Cycle-based suggestions
+        if summary['total_cycles'] > 500:
+            suggestions.append("- Battery has undergone many charge cycles. Consider replacement for optimal performance.")
+        
+        # Print suggestions
+        for suggestion in suggestions:
+            pdf.multi_cell(0, 6, suggestion)
+        
+        pdf.ln(5)
+        
+        # ===== 6. GRAPHICAL ANALYSIS (Charts) =====
         pdf.set_font('Arial', 'B', 16)
         pdf.set_text_color(106, 17, 203)
         pdf.cell(0, 10, 'Graphical Analysis', 0, 1, 'L')
@@ -435,10 +497,11 @@ def download_report():
         pdf.image(temp_chart, x=10, w=190)
         os.remove(temp_chart)
         
-        # Add new page for data table
+        pdf.ln(5)
+        
+        # ===== 7. DETAILED DATA TABLE =====
         pdf.add_page()
         
-        # Data Table Section
         pdf.set_font('Arial', 'B', 16)
         pdf.set_text_color(106, 17, 203)
         pdf.cell(0, 10, 'Detailed Data Table', 0, 1, 'L')
@@ -498,6 +561,8 @@ def download_report():
         
     except Exception as e:
         print(f"Error generating PDF: {e}")
+        import traceback
+        traceback.print_exc()
         return f"""<html><body style="font-family: Arial; padding: 50px; background: #1a1a2e; color: #fff;">
         <h1>❌ Error Generating Report</h1>
         <p>An error occurred while creating the PDF: {str(e)}</p>
