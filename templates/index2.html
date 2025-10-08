@@ -171,11 +171,10 @@
             font-size: 0.9rem;
         }
 
-        /* --- NEW: Button Styles --- */
+        /* Button Styles */
         .report-button-container {
             text-align: center;
-            /* Places the button after charts and before the status bar */
-            margin: 20px 0; 
+            margin: 20px 0;
         }
 
         .download-button {
@@ -196,6 +195,28 @@
         .download-button:hover {
             transform: translateY(-4px);
             box-shadow: 0 8px 25px rgba(37, 117, 252, 0.3);
+        }
+
+        .download-button:disabled {
+            background: linear-gradient(45deg, #666, #888);
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .download-button:disabled:hover {
+            transform: none;
+            box-shadow: none;
+        }
+
+        .timer-info {
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: var(--warning);
+            font-style: italic;
+        }
+
+        .timer-info.ready {
+            color: var(--success);
         }
         
         /* Responsive adjustments */
@@ -326,9 +347,14 @@
             </div>
         </div>
 
-        <!-- NEW: Download Button Section -->
+        <!-- Download Button Section with Timer -->
         <div class="report-button-container">
-            <a href="/download_report" class="download-button">Download PDF Report</a>
+            <button id="downloadBtn" class="download-button" disabled onclick="downloadReport()">
+                📄 Download PDF Report
+            </button>
+            <div id="timerInfo" class="timer-info">
+                ⏳ Collecting data... Please wait <span id="countdown">30</span> seconds for accurate readings
+            </div>
         </div>
         
         <div class="status-bar">
@@ -410,6 +436,41 @@
         const sohChart = createChart(document.getElementById('sohChart'), 'State of Health (%)', '#00b894');
 
         let updateCount = 0;
+        let dataCollectionStartTime = null;
+        let timerInterval = null;
+        let downloadReady = false;
+
+        // Timer countdown function
+        function startDownloadTimer() {
+            const downloadBtn = document.getElementById('downloadBtn');
+            const timerInfo = document.getElementById('timerInfo');
+            const countdownSpan = document.getElementById('countdown');
+            
+            dataCollectionStartTime = Date.now();
+            let remainingSeconds = 30;
+            
+            timerInterval = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - dataCollectionStartTime) / 1000);
+                remainingSeconds = 30 - elapsed;
+                
+                if (remainingSeconds <= 0) {
+                    clearInterval(timerInterval);
+                    downloadReady = true;
+                    downloadBtn.disabled = false;
+                    timerInfo.className = 'timer-info ready';
+                    timerInfo.innerHTML = '✅ Report ready! Click the button above to download your battery report.';
+                } else {
+                    countdownSpan.textContent = remainingSeconds;
+                }
+            }, 1000);
+        }
+
+        // Download report function
+        function downloadReport() {
+            if (downloadReady) {
+                window.location.href = '/download_report';
+            }
+        }
 
         // Function to update a chart with new data
         function updateChart(chart, value, label, maxPoints = 20) {
@@ -441,6 +502,11 @@
                 indicator.className = 'status-indicator status-online';
                 status.textContent = 'Connected to Arduino - Real-time Data';
                 status.style.color = '#00b894';
+                
+                // Start timer on first successful connection
+                if (!dataCollectionStartTime && updateCount === 0) {
+                    startDownloadTimer();
+                }
             } else {
                 indicator.className = 'status-indicator status-offline';
                 status.textContent = 'Arduino Disconnected - No Data';
@@ -468,7 +534,6 @@
 
         async function fetchData() {
             try {
-                // Fetch data from your Flask server
                 const response = await fetch('/data');
                 if (!response.ok) throw new Error('HTTP error: ' + response.status);
                 
