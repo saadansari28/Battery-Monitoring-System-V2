@@ -6,124 +6,285 @@
     <title>Battery Monitoring Dashboard</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+        
         :root {
-            --primary: #6a11cb;
-            --secondary: #2575fc;
-            --accent: #00cdac;
-            --dark: #1a1a2e;
-            --darker: #16213e;
-            --light: #f0f8ff;
-            --success: #00b894;
-            --warning: #fdcb6e;
-            --danger: #e17055;
-            --card-bg: rgba(255, 255, 255, 0.08);
+            --neon-cyan: #00fff5;
+            --neon-pink: #ff00ff;
+            --neon-purple: #b400ff;
+            --neon-blue: #0080ff;
+            --neon-green: #00ff88;
+            --neon-orange: #ff6b35;
+            --neon-yellow: #ffdd00;
+            --bg-dark: #0a0a0f;
+            --bg-darker: #050508;
+            --card-bg: rgba(15, 15, 25, 0.8);
+            --card-border: rgba(0, 255, 245, 0.2);
         }
         
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
         
         body {
-            background: linear-gradient(135deg, var(--darker), var(--dark));
-            color: var(--light);
+            background: var(--bg-darker);
+            color: #fff;
             min-height: 100vh;
-            padding: 20px;
+            font-family: 'Rajdhani', sans-serif;
+            overflow-x: hidden;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(0, 255, 245, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(180, 0, 255, 0.05) 0%, transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(0, 128, 255, 0.03) 0%, transparent 50%);
+            animation: bgShift 20s ease infinite;
+            z-index: 0;
+        }
+        
+        @keyframes bgShift {
+            0%, 100% { transform: scale(1) rotate(0deg); }
+            50% { transform: scale(1.1) rotate(5deg); }
         }
         
         .container {
-            max-width: 1400px;
+            max-width: 1600px;
             margin: 0 auto;
+            padding: 30px;
+            position: relative;
+            z-index: 1;
         }
         
         header {
             text-align: center;
-            margin-bottom: 30px;
-            padding: 20px;
+            margin-bottom: 50px;
+            padding: 40px 20px;
+            position: relative;
         }
         
         h1 {
-            font-size: 3rem;
-            margin-bottom: 10px;
-            background: linear-gradient(45deg, var(--accent), var(--secondary));
+            font-family: 'Orbitron', sans-serif;
+            font-size: 4rem;
+            font-weight: 900;
+            margin-bottom: 15px;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple), var(--neon-pink));
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
+            background-size: 200% 200%;
+            animation: gradientFlow 4s ease infinite;
+            letter-spacing: 3px;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        h1::before {
+            content: '🔋';
+            position: absolute;
+            left: -80px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 3.5rem;
+            animation: batteryPulse 3s ease infinite;
+        }
+        
+        @keyframes batteryPulse {
+            0%, 100% { transform: translateY(-50%) scale(1); filter: drop-shadow(0 0 10px var(--neon-cyan)); }
+            50% { transform: translateY(-50%) scale(1.1); filter: drop-shadow(0 0 25px var(--neon-cyan)); }
+        }
+        
+        @keyframes gradientFlow {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
         }
         
         .subtitle {
-            font-size: 1.2rem;
-            opacity: 0.8;
+            font-size: 1.4rem;
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 4px;
+            font-weight: 300;
+            opacity: 0.9;
+            animation: subtitleGlow 3s ease infinite;
+        }
+        
+        @keyframes subtitleGlow {
+            0%, 100% { text-shadow: 0 0 10px var(--neon-cyan); }
+            50% { text-shadow: 0 0 20px var(--neon-cyan), 0 0 30px var(--neon-cyan); }
         }
         
         .dashboard {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            margin-bottom: 40px;
         }
         
         .metric-card {
             background: var(--card-bg);
-            border-radius: 15px;
-            padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            text-align: center;
-            transition: transform 0.3s;
+            border-radius: 20px;
+            padding: 30px;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            cursor: pointer;
+        }
+        
+        .metric-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: linear-gradient(45deg, transparent, var(--neon-cyan), transparent);
+            opacity: 0;
+            transition: all 0.6s ease;
+            animation: borderRotate 4s linear infinite;
+        }
+        
+        @keyframes borderRotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .metric-card:hover::before {
+            opacity: 0.3;
         }
         
         .metric-card:hover {
-            transform: translateY(-5px);
+            transform: translateY(-12px) scale(1.02);
+            border-color: var(--neon-cyan);
+            box-shadow: 0 20px 60px rgba(0, 255, 245, 0.3), 0 0 40px rgba(0, 255, 245, 0.2);
+        }
+        
+        .metric-card:nth-child(2):hover { 
+            border-color: var(--neon-blue);
+            box-shadow: 0 20px 60px rgba(0, 128, 255, 0.3), 0 0 40px rgba(0, 128, 255, 0.2);
+        }
+        .metric-card:nth-child(3):hover { 
+            border-color: var(--neon-green);
+            box-shadow: 0 20px 60px rgba(0, 255, 136, 0.3), 0 0 40px rgba(0, 255, 136, 0.2);
+        }
+        .metric-card:nth-child(4):hover { 
+            border-color: var(--neon-orange);
+            box-shadow: 0 20px 60px rgba(255, 107, 53, 0.3), 0 0 40px rgba(255, 107, 53, 0.2);
+        }
+        .metric-card:nth-child(5):hover { 
+            border-color: var(--neon-yellow);
+            box-shadow: 0 20px 60px rgba(255, 221, 0, 0.3), 0 0 40px rgba(255, 221, 0, 0.2);
+        }
+        .metric-card:nth-child(6):hover { 
+            border-color: var(--neon-green);
+            box-shadow: 0 20px 60px rgba(0, 255, 136, 0.3), 0 0 40px rgba(0, 255, 136, 0.2);
+        }
+        .metric-card:nth-child(7):hover { 
+            border-color: var(--neon-purple);
+            box-shadow: 0 20px 60px rgba(180, 0, 255, 0.3), 0 0 40px rgba(180, 0, 255, 0.2);
         }
         
         .metric-icon {
-            font-size: 2.5rem;
-            margin-bottom: 15px;
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            display: inline-block;
+            animation: iconFloat 3s ease-in-out infinite;
+            filter: drop-shadow(0 0 15px currentColor);
+        }
+        
+        @keyframes iconFloat {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .metric-card:hover .metric-icon {
+            animation: iconSpin 0.6s ease;
+        }
+        
+        @keyframes iconSpin {
+            0% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.2); }
+            100% { transform: rotate(360deg) scale(1); }
         }
         
         .metric-title {
-            font-size: 1.1rem;
-            opacity: 0.8;
-            margin-bottom: 10px;
+            font-size: 1rem;
+            opacity: 0.7;
+            margin-bottom: 15px;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 2px;
+            font-weight: 500;
+            color: var(--neon-cyan);
         }
         
         .metric-value {
-            font-size: 2.2rem;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
             font-weight: 700;
-            margin-bottom: 5px;
-            color: #00cdac;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, var(--neon-cyan), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover .metric-value {
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 10px var(--neon-cyan));
         }
         
         .metric-unit {
-            font-size: 1rem;
-            opacity: 0.7;
+            font-size: 1.1rem;
+            opacity: 0.6;
+            font-weight: 300;
         }
         
         .charts-container {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(500px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(550px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
         }
         
         .chart-card {
             background: var(--card-bg);
-            border-radius: 15px;
-            padding: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            height: 350px;
+            border-radius: 20px;
+            padding: 25px;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            height: 380px;
             display: flex;
             flex-direction: column;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+        }
+        
+        .chart-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 15px 50px rgba(0, 255, 245, 0.3);
         }
         
         .chart-title {
+            font-family: 'Orbitron', sans-serif;
             font-size: 1.3rem;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
             text-align: center;
-            color: var(--accent);
+            color: var(--neon-cyan);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            font-weight: 600;
+            text-shadow: 0 0 15px var(--neon-cyan);
         }
         
         .chart-wrapper {
@@ -131,116 +292,203 @@
             position: relative;
         }
         
-        .status-bar {
-            background: rgba(255, 255, 255, 0.05);
-            border-radius: 10px;
-            padding: 15px;
+        .report-button-container {
             text-align: center;
-            margin-top: 20px;
+            margin: 40px 0;
+        }
+        
+        .download-button {
+            display: inline-block;
+            background: linear-gradient(135deg, var(--neon-cyan), var(--neon-purple));
+            color: #000;
+            padding: 18px 50px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.2rem;
+            border: none;
+            cursor: pointer;
+            font-family: 'Orbitron', sans-serif;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s ease;
+            box-shadow: 0 10px 40px rgba(0, 255, 245, 0.4);
+        }
+        
+        .download-button:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 20px 60px rgba(0, 255, 245, 0.6), 0 0 40px rgba(0, 255, 245, 0.4);
+        }
+        
+        .download-button:disabled {
+            background: linear-gradient(135deg, #333, #555);
+            cursor: not-allowed;
+            opacity: 0.5;
+            box-shadow: none;
+        }
+        
+        .download-button:disabled:hover {
+            transform: none;
+        }
+        
+        .timer-info {
+            margin-top: 15px;
+            font-size: 1rem;
+            color: var(--neon-yellow);
+            font-style: italic;
+            text-shadow: 0 0 10px var(--neon-yellow);
+            animation: timerPulse 2s ease infinite;
+        }
+        
+        @keyframes timerPulse {
+            0%, 100% { opacity: 0.7; }
+            50% { opacity: 1; }
+        }
+        
+        .timer-info.ready {
+            color: var(--neon-green);
+            text-shadow: 0 0 15px var(--neon-green);
+        }
+        
+        .status-bar {
+            background: var(--card-bg);
+            border-radius: 20px;
+            padding: 25px;
+            text-align: center;
+            margin-top: 30px;
+            border: 1px solid var(--card-border);
+            backdrop-filter: blur(10px);
+            position: relative;
+            overflow: hidden;
         }
         
         .status-indicator {
             display: inline-block;
-            width: 10px;
-            height: 10px;
+            width: 12px;
+            height: 12px;
             border-radius: 50%;
-            margin-right: 8px;
+            margin-right: 10px;
+            position: relative;
         }
         
         .status-online {
-            background-color: var(--success);
-            animation: pulse 2s infinite;
+            background-color: var(--neon-green);
+            box-shadow: 0 0 20px var(--neon-green);
+            animation: ping 2s infinite;
         }
         
         .status-offline {
-            background-color: var(--danger);
+            background-color: #ff4444;
+            box-shadow: 0 0 20px #ff4444;
         }
         
-        @keyframes pulse {
-            0% { transform: scale(0.95); opacity: 0.7; }
-            50% { transform: scale(1.1); opacity: 1; }
-            100% { transform: scale(0.95); opacity: 0.7; }
+        @keyframes ping {
+            75%, 100% {
+                transform: scale(2);
+                opacity: 0;
+            }
+        }
+        
+        #connection-status {
+            font-size: 1.2rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        #last-update {
+            margin-top: 15px;
+            font-size: 0.95rem;
+            opacity: 0.7;
+            font-family: 'Orbitron', monospace;
         }
         
         #raw-data {
-            margin-top: 10px;
-            font-family: monospace;
-            background: rgba(0, 0, 0, 0.3);
-            padding: 10px;
-            border-radius: 5px;
-            font-size: 0.9rem;
-        }
-
-        /* Button Styles */
-        .report-button-container {
-            text-align: center;
-            margin: 20px 0;
-        }
-
-        .download-button {
-            display: inline-block;
-            background: linear-gradient(45deg, var(--accent), var(--secondary));
-            color: var(--light);
-            padding: 15px 35px;
+            margin-top: 15px;
+            font-family: 'Courier New', monospace;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 15px;
             border-radius: 10px;
-            text-decoration: none;
-            font-weight: 600;
-            font-size: 1.1rem;
-            border: none;
-            cursor: pointer;
-            box-shadow: 0 5px 20px rgba(0, 205, 172, 0.25);
-            transition: all 0.3s ease;
-        }
-
-        .download-button:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 25px rgba(37, 117, 252, 0.3);
-        }
-
-        .download-button:disabled {
-            background: linear-gradient(45deg, #666, #888);
-            cursor: not-allowed;
-            opacity: 0.6;
-        }
-
-        .download-button:disabled:hover {
-            transform: none;
-            box-shadow: none;
-        }
-
-        .timer-info {
-            margin-top: 10px;
             font-size: 0.9rem;
-            color: var(--warning);
-            font-style: italic;
+            border: 1px solid rgba(0, 255, 245, 0.2);
+            text-align: left;
+            color: var(--neon-cyan);
         }
 
-        .timer-info.ready {
-            color: var(--success);
+        /* Easter Egg Styles */
+        .easter-egg-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0);
+            background: rgba(0, 0, 0, 0.95);
+            padding: 40px;
+            border-radius: 20px;
+            border: 2px solid var(--neon-cyan);
+            box-shadow: 0 0 100px rgba(0, 255, 245, 0.8);
+            z-index: 9999;
+            text-align: center;
+            transition: transform 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        .easter-egg-message.show {
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        .easter-egg-message h2 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2.5rem;
+            color: var(--neon-cyan);
+            text-shadow: 0 0 20px var(--neon-cyan);
+            margin-bottom: 20px;
+        }
+
+        .easter-egg-message p {
+            font-size: 1.2rem;
+            line-height: 1.8;
+            color: #fff;
+            margin-bottom: 10px;
+        }
+
+        .party-mode {
+            animation: partyColors 0.5s infinite;
+        }
+
+        @keyframes partyColors {
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
         }
         
-        /* Responsive adjustments */
+        @media (max-width: 1200px) {
+            .charts-container {
+                grid-template-columns: 1fr;
+            }
+        }
+        
         @media (max-width: 768px) {
-            .dashboard, .charts-container {
+            h1 {
+                font-size: 2.5rem;
+            }
+            
+            h1::before {
+                position: relative;
+                left: 0;
+                display: block;
+                margin-bottom: 15px;
+            }
+            
+            .dashboard {
                 grid-template-columns: 1fr;
             }
             
-            h1 {
-                font-size: 2.2rem;
-            }
-            
             .metric-value {
-                font-size: 1.8rem;
+                font-size: 2.5rem;
             }
             
             .chart-card {
-                height: 300px;
-            }
-        }
-        
-        @media (max-width: 600px) {
-            .chart-card {
-                height: 250px;
+                height: 320px;
             }
         }
     </style>
@@ -248,8 +496,8 @@
 <body>
     <div class="container">
         <header>
-            <h1>🔋 Battery Monitoring Dashboard</h1>
-            <p class="subtitle">Real-time battery performance metrics</p>
+            <h1 id="mainTitle">Battery Monitoring Dashboard</h1>
+            <p class="subtitle">Real-time Performance Metrics</p>
         </header>
         
         <div class="dashboard">
@@ -347,7 +595,6 @@
             </div>
         </div>
 
-        <!-- Download Button Section with Timer -->
         <div class="report-button-container">
             <button id="downloadBtn" class="download-button" disabled onclick="downloadReport()">
                 📄 Download PDF Report
@@ -360,7 +607,7 @@
         <div class="status-bar">
             <span class="status-indicator" id="status-indicator"></span>
             <span id="connection-status">Connecting to Arduino...</span>
-            <div id="last-update" style="margin-top: 10px; font-size: 0.9rem; opacity: 0.7;">
+            <div id="last-update">
                 Last update: Never
             </div>
             <div id="raw-data">
@@ -369,8 +616,21 @@
         </div>
     </div>
 
+    <div class="easter-egg-message" id="easterEggBox">
+        <h2>🎉 Easter Egg Found! 🎉</h2>
+        <p id="easterEggText"></p>
+    </div>
+
     <script>
-        // Chart setup
+        // Console Easter Egg
+        console.log('%c🔋 Battery Dashboard v2.0 🔋', 'font-size: 24px; color: #00fff5; font-weight: bold; text-shadow: 0 0 10px #00fff5;');
+        console.log('%cPssst... Try these Easter eggs:', 'font-size: 14px; color: #b400ff;');
+        console.log('%c1. Triple-click the main title', 'color: #00ff88;');
+        console.log('%c2. Type "party" anywhere on the page', 'color: #00ff88;');
+        console.log('%c3. Click the battery icon 5 times quickly', 'color: #00ff88;');
+        console.log('%c4. Press Ctrl+Shift+B for a surprise', 'color: #00ff88;');
+
+        // Chart creation
         const createChart = (ctx, label, color) => {
             return new Chart(ctx, {
                 type: 'line',
@@ -380,15 +640,15 @@
                         label: label, 
                         data: [], 
                         borderColor: color,
-                        backgroundColor: color + '20',
+                        backgroundColor: color + '40',
                         borderWidth: 3,
                         tension: 0.4,
                         fill: true,
                         pointBackgroundColor: color,
                         pointBorderColor: '#ffffff',
                         pointBorderWidth: 2,
-                        pointRadius: 3,
-                        pointHoverRadius: 5
+                        pointRadius: 4,
+                        pointHoverRadius: 7
                     }] 
                 },
                 options: {
@@ -397,50 +657,43 @@
                     plugins: {
                         legend: {
                             labels: {
-                                color: '#f0f8ff',
-                                font: {
-                                    size: 12
-                                }
+                                color: '#00fff5',
+                                font: { size: 13, weight: '600' }
                             }
                         }
                     },
                     scales: {
                         x: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#f0f8ff',
-                                maxTicksLimit: 8
-                            }
+                            grid: { color: 'rgba(0, 255, 245, 0.1)' },
+                            ticks: { color: '#00fff5', maxTicksLimit: 8 }
                         },
                         y: {
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#f0f8ff'
-                            }
+                            grid: { color: 'rgba(0, 255, 245, 0.1)' },
+                            ticks: { color: '#00fff5' }
                         }
                     }
                 }
             });
         };
 
-        // Initialize all charts
-        const voltageChart = createChart(document.getElementById('voltageChart'), 'Voltage (V)', '#6a11cb');
-        const currentChart = createChart(document.getElementById('currentChart'), 'Current (mA)', '#2575fc');
-        const powerChart = createChart(document.getElementById('powerChart'), 'Power (mW)', '#00cdac');
-        const temperatureChart = createChart(document.getElementById('temperatureChart'), 'Temperature (°C)', '#e17055');
-        const socChart = createChart(document.getElementById('socChart'), 'State of Charge (%)', '#fdcb6e');
-        const sohChart = createChart(document.getElementById('sohChart'), 'State of Health (%)', '#00b894');
+        const voltageChart = createChart(document.getElementById('voltageChart'), 'Voltage (V)', '#00fff5');
+        const currentChart = createChart(document.getElementById('currentChart'), 'Current (mA)', '#0080ff');
+        const powerChart = createChart(document.getElementById('powerChart'), 'Power (mW)', '#00ff88');
+        const temperatureChart = createChart(document.getElementById('temperatureChart'), 'Temperature (°C)', '#ff6b35');
+        const socChart = createChart(document.getElementById('socChart'), 'State of Charge (%)', '#ffdd00');
+        const sohChart = createChart(document.getElementById('sohChart'), 'State of Health (%)', '#00ff88');
 
         let updateCount = 0;
         let dataCollectionStartTime = null;
         let timerInterval = null;
         let downloadReady = false;
 
-        // Timer countdown function
+        // Easter Egg Variables
+        let batteryClickCount = 0;
+        let batteryClickTimer;
+        let typedKeys = '';
+        let partyMode = false;
+
         function startDownloadTimer() {
             const downloadBtn = document.getElementById('downloadBtn');
             const timerInfo = document.getElementById('timerInfo');
@@ -465,14 +718,12 @@
             }, 1000);
         }
 
-        // Download report function
         function downloadReport() {
             if (downloadReady) {
                 window.location.href = '/download_report';
             }
         }
 
-        // Function to update a chart with new data
         function updateChart(chart, value, label, maxPoints = 20) {
             if (chart.data.labels.length > maxPoints) {
                 chart.data.labels.shift();
@@ -485,7 +736,6 @@
         }
 
         function updateDisplay(data) {
-            // Update all values
             document.getElementById('voltage').textContent = data.voltage.toFixed(2);
             document.getElementById('current').textContent = data.current.toFixed(2);
             document.getElementById('power').textContent = data.power.toFixed(2);
@@ -494,36 +744,31 @@
             document.getElementById('soh').textContent = data.soh.toFixed(2);
             document.getElementById('cycles').textContent = Math.round(data.cycles);
             
-            // Update status
             const indicator = document.getElementById('status-indicator');
             const status = document.getElementById('connection-status');
             
             if (data.connected) {
                 indicator.className = 'status-indicator status-online';
                 status.textContent = 'Connected to Arduino - Real-time Data';
-                status.style.color = '#00b894';
+                status.style.color = '#00ff88';
                 
-                // Start timer on first successful connection
                 if (!dataCollectionStartTime && updateCount === 0) {
                     startDownloadTimer();
                 }
             } else {
                 indicator.className = 'status-indicator status-offline';
                 status.textContent = 'Arduino Disconnected - No Data';
-                status.style.color = '#e17055';
+                status.style.color = '#ff4444';
             }
             
             const timestamp = new Date().toLocaleTimeString();
-            // Update timestamp
             document.getElementById('last-update').textContent = 
                 `Last update: ${timestamp} (Update #${++updateCount})`;
             
-            // Show raw data
             document.getElementById('raw-data').innerHTML = 
                 `Raw Data: V:${data.voltage}V | I:${data.current}mA | T:${data.temperature}°C | ` +
                 `SOC:${data.soc}% | P:${data.power}mW | Cycles:${data.cycles}`;
             
-            // Update all charts
             updateChart(voltageChart, data.voltage, timestamp);
             updateChart(currentChart, data.current, timestamp);
             updateChart(powerChart, data.power, timestamp);
@@ -548,7 +793,6 @@
             } catch (error) {
                 console.error('Fetch error:', error);
                 
-                // Show error state
                 document.getElementById('connection-status').textContent = 
                     'Server Connection Error - Check if Flask is running';
                 document.getElementById('connection-status').style.color = '#e17055';
@@ -556,6 +800,98 @@
                 document.getElementById('raw-data').textContent = 'Error: ' + error.message;
             }
         }
+
+        // Easter Egg Functions
+        function showEasterEgg(message) {
+            const box = document.getElementById('easterEggBox');
+            const text = document.getElementById('easterEggText');
+            text.textContent = message;
+            box.classList.add('show');
+            
+            setTimeout(() => {
+                box.classList.remove('show');
+            }, 4000);
+        }
+
+        // Easter Egg 1: Triple-click title
+        document.getElementById('mainTitle').addEventListener('click', function(e) {
+            if (e.detail === 3) {
+                showEasterEgg('⚡ SUPERCHARGED! You found the secret triple-click! May your batteries always be at 100%! ⚡');
+                this.style.animation = 'none';
+                setTimeout(() => {
+                    this.style.animation = '';
+                }, 10);
+            }
+        });
+
+        // Easter Egg 2: Type "party" anywhere
+        document.addEventListener('keypress', function(e) {
+            typedKeys += e.key.toLowerCase();
+            
+            if (typedKeys.includes('party')) {
+                if (!partyMode) {
+                    partyMode = true;
+                    document.body.classList.add('party-mode');
+                    showEasterEgg('🎉 PARTY MODE ACTIVATED! 🎉 Everything is 20% cooler now!');
+                    
+                    setTimeout(() => {
+                        partyMode = false;
+                        document.body.classList.remove('party-mode');
+                    }, 10000);
+                }
+                typedKeys = '';
+            }
+            
+            if (typedKeys.length > 10) {
+                typedKeys = typedKeys.slice(-10);
+            }
+        });
+
+        // Easter Egg 3: Click battery icon 5 times quickly
+        document.querySelector('h1::before') || document.querySelector('h1').addEventListener('click', function(e) {
+            if (e.target.tagName === 'H1') {
+                batteryClickCount++;
+                
+                clearTimeout(batteryClickTimer);
+                batteryClickTimer = setTimeout(() => {
+                    batteryClickCount = 0;
+                }, 2000);
+                
+                if (batteryClickCount === 5) {
+                    showEasterEgg('🔋 BATTERY MASTER UNLOCKED! 🔋 You clicked faster than our refresh rate!');
+                    batteryClickCount = 0;
+                    
+                    // Make all metric values flash
+                    document.querySelectorAll('.metric-value').forEach(el => {
+                        el.style.animation = 'none';
+                        setTimeout(() => {
+                            el.style.animation = 'iconSpin 0.6s ease';
+                        }, 10);
+                    });
+                }
+            }
+        });
+
+        // Easter Egg 4: Ctrl+Shift+B
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && e.shiftKey && e.key === 'B') {
+                e.preventDefault();
+                showEasterEgg('💡 BRILLIANT! You found the secret shortcut! Fun fact: This dashboard has consumed approximately 0.00042 kWh of energy since you opened it. Eco-friendly coding FTW! 🌱');
+                
+                // Change all chart colors briefly
+                const charts = [voltageChart, currentChart, powerChart, temperatureChart, socChart, sohChart];
+                charts.forEach(chart => {
+                    const originalColor = chart.data.datasets[0].borderColor;
+                    chart.data.datasets[0].borderColor = '#ff00ff';
+                    chart.update();
+                    
+                    setTimeout(() => {
+                        chart.data.datasets[0].borderColor = originalColor;
+                        chart.update();
+                    }, 2000);
+                });
+            }
+        });
 
         // Fetch data every second
         setInterval(fetchData, 1000);
